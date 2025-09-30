@@ -1,2 +1,1 @@
-    Interface-Class: Interface
-    
+Main-Class: Interface 

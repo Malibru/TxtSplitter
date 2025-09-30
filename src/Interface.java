@@ -1,6 +1,12 @@
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
+import split.TxtSplitter;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
+import javax.swing.SwingWorker;
+
 import java.awt.*;
 import java.io.File;
 import java.nio.file.Files;
@@ -33,6 +39,7 @@ public class Interface {
             1,1, Integer.MAX_VALUE,1));
 
         JButton btnSplit = new JButton("Dividir");
+        btnSplit.setEnabled(false);
         gbc.gridx = 1; gbc.gridy = 2; gbc.weightx = 0;
         gbc.anchor = GridBagConstraints.EAST;
         top.add(btnSplit, gbc);
@@ -69,10 +76,57 @@ public class Interface {
                     String content = new String(data, StandardCharsets.UTF_8);
                     preview.setText(content);
                     preview.setCaretPosition(0);
+                    btnSplit.setEnabled(true);
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(f, "Erro ao ler o arquivo:\n" + ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
                 }
             }
+        });
+
+        btnSplit.addActionListener(e -> {
+            String caminho = txtCaminho.getText().trim();
+            if (caminho.isEmpty()){
+                JOptionPane.showMessageDialog(f, "Selecione o arquivo .txt primeiro");
+                return;
+            }
+            int partes = (int) spnBloco.getValue();
+            if (partes < 1){
+                JOptionPane.showMessageDialog(f, "Informe a quantidade de partes (>= 1)");
+                return;
+            }
+
+            JFileChooser chooser = new JFileChooser();
+            chooser.setDialogTitle("Salvar em...");
+            chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+            chooser.setAcceptAllFileFilterUsed(false);
+
+            int res = chooser.showSaveDialog(f);
+            if(res != JFileChooser.APPROVE_OPTION){
+                return;
+            }
+
+            File pastaSaida = chooser.getSelectedFile();
+            btnSplit.setEnabled(false);
+            btnSplit.setText("Dividindo...");
+            new SwingWorker<Void, Void>(){
+                @Override
+                protected Void doInBackground() throws Exception{
+                    Path arquivo = Paths.get(caminho);
+                    List<Path> gerados = TxtSplitter.splitIntoParts(arquivo, pastaSaida.toPath(), partes);
+                    return null;
+                }
+                @Override
+                protected void done() {
+                    btnSplit.setEnabled(true);
+                    btnSplit.setText("Dividir");
+                    try {
+                        get();
+                        JOptionPane.showMessageDialog(f, "Divisão concluída com sucesso", "OK", JOptionPane.INFORMATION_MESSAGE);
+                    } catch (Exception ex) {
+                        JOptionPane.showMessageDialog(f, "Erro ao dividir: " + ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            }.execute();
         });
 
         root.add(top, BorderLayout.NORTH);

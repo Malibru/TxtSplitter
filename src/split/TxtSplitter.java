@@ -9,52 +9,47 @@ import java.util.List;
 
 public class TxtSplitter {
 
-    public static List<Path> splitByLines(Path inputFile, Path outputDir, int linesPerPart)
-        throws IOException { 
-            if (linesPerPart < 1) throw new IllegalArgumentException("Quantiade linhas deve ser maior que 0");
-            if (inputFile == null || !Files.exists(inputFile)) throw new IllegalArgumentException("Arquivonão invalido");
-            if (outputDir == null) throw new IllegalArgumentException("Pasta de saída inválida");
-            Files.createDirectories(outputDir);
-
+    public static java.util.List<Path> splitIntoParts(Path inputFile, Path outputDir, int parts) throws IOException {
+        if (parts < 1) throw new IllegalArgumentException("parts deve ser >= 1");
+        if (inputFile == null || !Files.exists(inputFile)) throw new IllegalArgumentException("Arquivo de entrada inválido");
+        if (outputDir == null) throw new IllegalArgumentException("Pasta de saída inválida");
+        Files.createDirectories(outputDir);
+    
+        long total = 0;
+        try (java.io.BufferedReader br = Files.newBufferedReader(inputFile, StandardCharsets.UTF_8)) {
+            while (br.readLine() != null) total++;
+        }
+        if (total == 0) return java.util.Collections.emptyList();
+        if (parts > total) parts = (int) total;
+    
+        long base = total / parts;           
+        long resto = total % parts;          
+    
         String fileName = inputFile.getFileName().toString();
         int idx = fileName.lastIndexOf('.');
+        String baseName = (idx > 0 ? fileName.substring(0, idx) : fileName);
+        String ext = (idx > 0 ? fileName.substring(idx) : ".txt");
+    
+        java.util.List<Path> outputs = new java.util.ArrayList<>(parts);
 
-        String base = (idx > 0 ? fileName.substring(0, idx) : fileName);
-		String ext = (idx > 0 ? fileName.substring(idx) : ".txt");
-
-		List<Path> outputs = new ArrayList<>();
-		int part = 1;
-		int linesInCurrent = 0;
-		BufferedWriter writer = null;
-
-		try (java.io.BufferedReader br = Files.newBufferedReader(inputFile, StandardCharsets.UTF_8)) {
-			String line;
-			while ((line = br.readLine()) != null) {
-				if (writer == null || linesInCurrent == 0) {
-					String outName = String.format("%s_part%03d%s", base, part, ext);
-					Path out = outputDir.resolve(outName);
-					writer = Files.newBufferedWriter(out, StandardCharsets.UTF_8,
-						StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
-					outputs.add(out);
-				}
-
-				writer.write(line);
-				writer.newLine();
-				linesInCurrent++;
-
-				if (linesInCurrent >= linesPerPart) {
-					writer.close();
-					writer = null;
-					linesInCurrent = 0;
-					part++;
-				}
-			}
-		} finally {
-			if (writer != null) {
-				try { writer.close(); } catch (IOException ignore) {}
-			}
-		}
-		return outputs;
-	}
-}
+        try (java.io.BufferedReader br = Files.newBufferedReader(inputFile, StandardCharsets.UTF_8)) {
+            for (int p = 1; p <= parts; p++) {
+                long alvo = base + (p <= resto ? 1 : 0); 
+                String outName = String.format("%s_part%03d%s", baseName, p, ext);
+                Path out = outputDir.resolve(outName);
+                try (java.io.BufferedWriter w = Files.newBufferedWriter(out, StandardCharsets.UTF_8,
+                        StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
+                    for (long i = 0; i < alvo; i++) {
+                        String line = br.readLine();
+                        if (line == null) break;
+                        w.write(line);
+                        w.newLine();
+                    }
+                }
+                outputs.add(out);
+            }
+        }
+    
+        return outputs;
+    }}
 

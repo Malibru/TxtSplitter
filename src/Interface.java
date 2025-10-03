@@ -15,9 +15,25 @@ import java.nio.charset.StandardCharsets;
 public class Interface {
     public static void main(String[] args) {
         JFrame f = new JFrame("TxtSplitter");
+        //carrega o ícone a partir dos recursos do classpath para funcionar no JAR/EXE
+        java.net.URL iconUrl = Interface.class.getResource("/Logo_Dicoco.png");
+        Image baseIcon;
+        if (iconUrl != null) {
+            baseIcon = new ImageIcon(iconUrl).getImage();
+        } else {
+            //fallback para execuções locais se o recurso não estiver no classpath
+            baseIcon = new ImageIcon("src/Logo_Dicoco.png").getImage();
+        }
+        f.setIconImage(baseIcon);
         f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);//fecha o programa ao clicar no X
         f.setSize(700, 500);//tamanho da janela
         f.setLocationRelativeTo(null);//centraliza a janela
+        java.util.List<Image> icons = new java.util.ArrayList<>();
+        int[] sizes = new int[]{16, 32, 48, 64, 128, 256};
+        for (int s : sizes) {
+            icons.add(baseIcon.getScaledInstance(s, s, Image.SCALE_SMOOTH));
+        }
+        f.setIconImages(icons);
         
         
         JPanel root = new JPanel(new BorderLayout(10,10));//painel usado para organizar os componentes
